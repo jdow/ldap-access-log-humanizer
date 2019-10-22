@@ -60,6 +60,44 @@ class TestConnection():
         assert connection.authenticated() == True
         assert connection.user == "user@example.com"
 
+    def test_authenticated_mail_failure_via_authd_bind_user(self):
+        rest1 = 'op=1 BIND dn="mail=user1@example.com,o=com,dc=example" method=128'
+        rest2 = 'op=1 RESULT tag=97 err=0 text='
+        rest3 = 'op=2 BIND dn="mail=user2@example.com,o=com,dc=example" method=128'
+        rest4 = 'op=2 RESULT err=49, tag=97, text='
+
+        connection = Connection(1245, TEST_CONNECTION_ARGS_DICT)
+
+        assert connection.conn_id == 1245
+        assert len(connection.file_descriptors) == 0
+        assert len(connection.operations) == 0
+        assert connection.authenticated() == False
+        assert connection.user == ""
+
+        connection.add_rest(rest1)
+        assert len(connection.file_descriptors) == 0
+        assert len(connection.operations) == 1
+        assert connection.authenticated() == False
+        assert connection.user == "user1@example.com"
+
+        connection.add_rest(rest2)
+        assert len(connection.file_descriptors) == 0
+        assert len(connection.operations) == 1
+        assert connection.authenticated() == True
+        assert connection.user == "user1@example.com"
+
+        connection.add_rest(rest3)
+        assert len(connection.file_descriptors) == 0
+        assert len(connection.operations) == 2
+        assert connection.authenticated() == True
+        assert connection.user == "user2@example.com"
+
+        connection.add_rest(rest4)
+        assert len(connection.file_descriptors) == 0
+        assert len(connection.operations) == 2
+        assert connection.authenticated() == True
+        assert connection.user == "user2@example.com"
+
     def test_authenticated_uid(self):
         rest1 = 'op=1 BIND dn="uid=foo-bar,ou=logins,dc=mozilla" method=128 mech=SIMPLE method=128 ssf=0'
         rest2 = 'op=1 RESULT tag=97 err=0 text='
